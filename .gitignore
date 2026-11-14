@@ -1,0 +1,28 @@
+# Build artifacts
+build/
+outputs/
+*.app
+
+# macOS
+.DS_Store
+
+# Xcode / Swift
+DerivedData/
+xcuserdata/
+*.xcuserstate
+*.xccheckout
+*.xcscmblueprint
+*.moved-aside
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# SwiftPM
+.build/
+.swiftpm/
+
+# Editor
+.idea/
+*.swp
+*~
