@@ -8,6 +8,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private var targetPID: pid_t?
     private var menuWindow: Result<AXUIElement, Error>?
     private var preferences: PreferencesWindowController?
+    private var permissionWindow: PermissionWindowController?
     private var permissionItem: NSMenuItem?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -27,7 +28,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         configureMenu()
         hotkeys.onAction = { [weak self] layout in self?.apply(layout) }
         hotkeys.start()
-        if !AXIsProcessTrusted() { requestAccessibility() }
+        // Wait until the run loop is up so an accessory app can come forward.
+        if !AXIsProcessTrusted() {
+            DispatchQueue.main.async { [weak self] in
+                self?.presentPermissionOnboarding()
+            }
+        }
     }
 
     @objc private func applicationActivated(_ notification: Notification) {
@@ -93,7 +99,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menuWindow = Result { try windowController.focusedWindow(targetPID: menuTargetPID) }
         permissionItem?.title = AXIsProcessTrusted()
             ? "辅助功能：已授权"
-            : "辅助功能：当前版本未授权…"
+            : "检查辅助功能权限…"
     }
 
     func menuDidClose(_ menu: NSMenu) {
@@ -171,6 +177,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
             NSLog("WindowAlign action succeeded: %@", layout.rawValue)
         } catch {
             NSLog("WindowAlign action failed: %@", error.localizedDescription)
+            if let windowError = error as? WindowError, case .accessDenied = windowError {
+                presentPermissionOnboarding()
+                return
+            }
             let alert = NSAlert()
             alert.messageText = "WindowAlign"
             alert.informativeText = error.localizedDescription
@@ -178,9 +188,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
     }
 
+    private func presentPermissionOnboarding() {
+        if permissionWindow == nil {
+            permissionWindow = PermissionWindowController()
+        }
+        permissionWindow?.present()
+    }
+
     @objc private func requestAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-        _ = AXIsProcessTrustedWithOptions(options)
+        presentPermissionOnboarding()
     }
 
     @objc private func quitApp() { NSApp.terminate(nil) }

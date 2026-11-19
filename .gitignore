@@ -2,6 +2,8 @@
 build/
 outputs/
 *.app
+*.dmg
+*.pkg
 
 # macOS
 .DS_Store
